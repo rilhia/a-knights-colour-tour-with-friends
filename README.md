@@ -96,7 +96,7 @@ This can be an iterative process of changing and clicking on the **Check Build**
 * Select a colour from the dynamic palette (or select the Black "Void" space).
 * Tap or **drag your finger/mouse** across the grid to paint custom regions. 
 * Click **Check Build** to ensure your custom paint job still only yields one unique solution.
-* * *Note:* Like in the **Manual** mode, this can be an iterative process.
+* *Note:* Like in the **Manual** mode, this can be an iterative process.
 
 ---
 
@@ -104,7 +104,11 @@ This can be an iterative process of changing and clicking on the **Check Build**
 Once you have a verified board, challenge your friends instantly—no accounts or databases required:
 
 * **The Share Button:** On mobile, this opens your native sharing sheet. On desktop, it copies a unique URL to your clipboard. The link contains the *entire* board state encoded right into the web address!
-* **Manual Text Import:** Copy the JSON array block (e.g., `[[0,0...]]`) from the text box and send it to a friend. They can paste it into their own Build tab and click **📥 Import**.
+* **Manual Text Import:** You can also use the **📥 Import** button copy or edit the text in the **Output** window. Copy the JSON array block (e.g., `[[1,1,1,1,3],[0,0,0,0,3],[0,0,0,0,4],[2,2,2,2,2],[2,99,2,2,2]]`) from the text box and send it to a friend. They can paste it into their own Build tab and click the **📥 Import** button.
+
+<img src="images/screenshot12.png" width="300">
+
+You'll need to click the **Check Build** and **Apply To Tabs** to use your new board.
 
 ---
 
