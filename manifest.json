@@ -1,0 +1,24 @@
+{
+  "name": "A Knight's Colour Tour With Friends",
+  "short_name": "Knights",
+  "description": "The 1,000-year-old "Knight's Tour" maths problem modernised for the daily puzzle era.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#B497D6",
+  "icons": [
+    {
+      "src": "images/favicon-48x48.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
