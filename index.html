@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    	
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="images/favicon-48x48.png">
+
+    <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+    <title>Knights With Friends</title>
+    <style>
+        /* ============================================================
+           1. GLOBAL VARIABLES & DESIGN TOKENS
+           ============================================================ */
+        :root {
+            --bg: #f0f2f5;
+            --panel-bg: #ffffff;
+            --accent: #2dd4bf;
+            --overhead: 10vw; 
+            --cell: min(15vw, calc((90vw - var(--overhead)) / var(--size, 10)));
+            
+            --c0: #B497D6; --c1: #F6C28B; --c2: #9ABCF3; --c3: #D9D9D9;
+            --c4: #E67E60; --c5: #E6E68E; --c6: #A7D095; --c7: #B1A89B;
+            --c8: #2DD4BF; --c9: #FB7185; --c10: #818CF8; --c11: #FBBF24;
+            --Neutral: #000000;
+
+            --font-ui: clamp(14px, 4vw, 18px);
+            --font-timer: clamp(24px, 8vw, 42px);
+            --touch-target: clamp(44px, 10vw, 54px);
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex; flex-direction: column; align-items: center;
+            background: var(--bg); margin: 0; padding: 10px; height: 100vh;
+        }
+
+        .panel {
+            background: var(--panel-bg); padding: clamp(10px, 3vw, 20px); border-radius: 12px;
+            width: 95vw; max-width: 800px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            display: flex; flex-direction: column; gap: 10px; box-sizing: border-box;
+        }
+        
+        .module {
+            background: white; padding: clamp(12px, 4vw, 20px); border-radius: 12px;
+            width: 100%; display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); box-sizing: border-box; margin-bottom: 15px;
+        }
+
+        /* ============================================================
+           2. TABS & UI CONTROLS
+           ============================================================ */
+        .tabs { display: flex; gap: 5px; width: 95vw; max-width: 800px; margin-bottom: -2px; }
+        .tab-btn {
+            padding: 12px; flex: 1; font-size: var(--font-ui); cursor: pointer;
+            background: #e0e0e0; border: 2px solid #ccc; border-bottom: none;
+            border-radius: 8px 8px 0 0; font-weight: bold; color: #666; transition: 0.2s;
+        }
+        .tab-btn.active { background: white; border-color: #222; color: #000; }
+        .tab-content { display: none; width: 100%; flex-direction: column; align-items: center; background: transparent; padding-top: 20px; }
+        .tab-content.active { display: flex; }
+
+        .controls-bar { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center; width: 100%; }
+        button {
+            flex: 1; min-width: 120px; min-height: var(--touch-target); padding: 12px 15px;
+            font-size: var(--font-ui); font-weight: bold; border-radius: 10px; cursor: pointer;
+            border: 1px solid #ccc; background: #fff; transition: all 0.15s ease; user-select: none;
+        }
+        button.primary { background: #000; color: #fff; border: none; }
+        button.audit { background: #4f46e5; color: white; border: none; }
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .log { width: 100%; height: 80px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 10px; overflow-y: auto; font-size: 12px; font-family: monospace; }
+        
+        /* ============================================================
+           3. GRID STRUCTURE & CELL STATES
+           ============================================================ */
+        .board-wrapper { padding: 8px; background: #e5e7eb; border-radius: 8px; display: inline-block; line-height: 0; }
+        .grid {
+            display: grid; grid-template-columns: repeat(var(--size), var(--cell));
+            grid-template-rows: repeat(var(--size), var(--cell));
+            background: #000; gap: 1.5px; border: 4px solid #000; position: relative;
+            touch-action: none; /* CRITICAL: Prevents scrolling while dragging */
+            user-select: none;  /* CRITICAL: Prevents text highlighting while dragging */
+        }
+        .cell { 
+            display: flex; align-items: center; justify-content: center; cursor: pointer; 
+            position: relative; color: white; font-size: xx-large; font-weight: 600; 
+            border-color: white; border-style: solid;
+        }
+        
+        .visited { pointer-events: none; background-image: repeating-linear-gradient(45deg, transparent, transparent 0.5vw, rgba(0, 0, 0, 0.8) 1vw, rgba(0, 0, 0, 0) 2vw); }
+        .current-region { box-shadow: inset 0 0 15px rgba(255,255,255,0.6); z-index: 5; }
+        .v-neutral { background: var(--Neutral); }
+        .start-marker { font-size: calc(var(--cell) * 0.7); color: white; border: 2px solid white !important; }
+        .marker { border: 2px solid white !important; }
+        .duplicate-marker { 
+            box-shadow: rgb(239, 68, 68) 0px 0px 0px 4px inset;
+            background-image: 
+                linear-gradient(to top right, transparent calc(50% - 2px), rgb(239, 68, 68) calc(50% - 2px), rgb(239, 68, 68) calc(50% + 2px), transparent calc(50% + 2px)),
+                linear-gradient(to bottom right, transparent calc(50% - 2px), rgb(239, 68, 68) calc(50% - 2px), rgb(239, 68, 68) calc(50% + 2px), transparent calc(50% + 2px));
+        }
+        .knight::after { content: '♞'; font-size: calc(var(--cell) * 0.7); color: white; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); z-index: 10; }
+
+        /* ============================================================
+           4. LABELS & OVERLAYS
+           ============================================================ */
+        .labels-top { display: flex; margin-left: 30px; height: 30px; }
+        .labels-left { display: flex; flex-direction: column; width: 30px; }
+        .label { display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: var(--font-labels); color: #444; font-family: monospace; }
+        .label-col { width: var(--cell); height: 30px; }
+        .label-row { height: var(--cell); width: 30px; }
+        .void-label { align-content: center; font-weight: 600; padding-right: 5px; }
+
+        #game-timer { font-family: monospace; font-size: var(--font-timer); font-weight: bold; margin-bottom: 5px; }
+        #countdown-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; color: #fff; z-index: 1000; display: flex; 
+            justify-content: center; align-items: center; font-size: clamp(40px, 15vw, 80px); font-weight: bold;
+        }
+        #end-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(4px);
+        }
+        .win-text { color: var(--accent); font-weight: bold; font-size: 24px; }
+        .lose-text { color: #ef4444; font-weight: bold; font-size: 24px; }
+
+        /* ============================================================
+           5. BUILDER COMPONENTS
+           ============================================================ */
+        #palette { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 10px; }
+        .palette-color { width: 34px; height: 34px; border-radius: 6px; cursor: pointer; border: 3px solid transparent; box-sizing: border-box; margin-left: 5px; }
+        .palette-color.active { border-color: #000; transform: scale(1.1); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        textarea#output { width: 100%; height: 60px; font-family: monospace; font-size: 11px; margin-top: 10px; border-radius: 6px; border: 1px solid #ddd; }
+
+        .c0 { background-color: var(--c0); } .c1 { background-color: var(--c1); } .c2 { background-color: var(--c2); } .c3 { background-color: var(--c3); }
+        .c4 { background-color: var(--c4); } .c5 { background-color: var(--c5); } .c6 { background-color: var(--c6); } .c7 { background-color: var(--c7); }
+        .c8 { background-color: var(--c8); } .c9 { background-color: var(--c9); } .c10 { background-color: var(--c10); } .c11 { background-color: var(--c11); }
+        
+        /* ============================================================
+           6. HEADER & MEDIA QUERIES
+           ============================================================ */
+        .header-section { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; width: 100%; padding: 20px 10px; box-sizing: border-box; }
+        .logo-container { display: flex; justify-content: center; width: 100%; margin-bottom: 10px; }
+        .app-logo { max-width: 80%; height: auto; display: block; }
+        @media (min-width: 768px) { .app-logo { max-width: 350px; } }
+        .author-link { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; font-size: var(--font-ui); color: #007AFF; }
+        .header-utility { display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 5px; flex-wrap: wrap; }
+        .instructions-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background-color: #24292e; color: #ffffff !important; text-decoration: none; border-radius: 20px; font-size: 13px; font-weight: 600; transition: transform 0.15s, background-color 0.2s; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
+        .instructions-btn:hover { background-color: #444; transform: translateY(-1px); text-decoration: none; }
+        .instructions-btn:active { transform: translateY(1px); }
+        
+        #play-grid.game-over { pointer-events: none; transition: all 0.5s ease; }
+        
+        @media (min-width: 1024px) {
+            :root {
+                --label-size: 35px;
+                --overhead: 50px;
+                --cell: min(55px, calc((75vh - var(--overhead)) / var(--size, 10)));
+                --input-width: 150px;
+            }
+            .panel { width: 800px !important; }
+            .log { width: calc((75vh - var(--overhead))) !important; }
+        }
+    </style>
+</head>
+<body>
+    
+    <header class="header-section">
+        <div class="logo-container">
+            <img src="images/AKnightsColourTourWithFriendsLogo.png" alt="Queens With Friends Logo" class="app-logo">
+        </div>
+        <div class="header-utility">
+            <a href="https://www.linkedin.com/in/rilhia/" target="_blank" class="author-link">
+                By Richard Hall
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                </svg>
+            </a>
+            <a href="https://rilhia.github.io/queens-with-friends/instructions" target="_blank" class="instructions-btn">
+                📖 How to Play
+            </a>
+        </div>
+    </header>
+
+    <nav class="tabs">
+        <button id="btn-play" class="tab-btn active" onclick="switchTab('play-tab')">Play</button>
+        <button id="btn-builder" class="tab-btn" onclick="switchTab('builder-tab')">Build</button>
+        <button id="btn-solver" class="tab-btn" onclick="switchTab('solver-tab')">Solve</button>
+    </nav>
+
+    <div id="play-tab" class="tab-content active">
+        <div class="module">
+            <div class="controls-bar">
+                <div id="game-timer">00:00:00</div>
+                <button id="startBtn" class="primary" onclick="startCountdown()">▶ Start Game</button>
+                <button onclick="undoMove()">◀ Undo</button>
+                <button onclick="resetGame()">↺ Reset</button>
+            </div>
+        </div>
+        <div class="board-wrapper">
+            <div id="play-cols" class="labels-top"></div> 
+            <div style="display: flex;">
+                <div id="play-rows" class="labels-left"></div>
+                <div class="grid-area" style="position: relative;">
+                    <div id="countdown-overlay">♞</div>
+                    <div id="end-overlay">
+                        <h2 id="result-title"></h2>
+                        <p id="result-desc" style="color:white;"></p>
+                    </div>
+                    <div id="play-grid" class="grid"></div>
+                </div>
+            </div>
+        </div>
+        <div class="module"><div id="play-log" class="log">> Ready to play.</div></div>
+    </div>
+
+    <div id="builder-tab" class="tab-content">
+        <div class="module">
+            <div class="controls-bar">
+                <label>Size:
+                    <select id="boardSize" onchange="clearBoard()">
+                        <option value="5">5x5</option>
+                        <option value="6">6x6</option>
+                        <option value="7">7x7</option>
+                        <option value="8" selected>8x8</option>
+                        <option value="9">9x9</option>
+                        <option value="10">10x10</option>
+                    </select>
+                </label>
+                <div class="switch-container">
+                    <span>Build Mode</span>
+                    <select id="buildMode" onchange="setBuildMode(this.value);">
+                        <option value="1" selected>Automatic</option>
+                        <option value="2">Manual</option>
+                        <option value="3">Edit</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div id="palette" class="hidden module"></div>
+
+        <div class="board-wrapper">
+            <div id="builder-cols" class="labels-top"></div>
+            <div style="display: flex;">
+                <div id="builder-rows" class="labels-left"></div>
+                <div id="builder-grid" class="grid"></div>
+            </div>
+        </div>
+
+        <div class="module">
+            <div id="status-builder" style="font-weight:bold; color: #007AFF; margin-bottom: 10px;">Mode: Automatic Design</div>
+            <div class="btn-row controls-bar">
+                <button onclick="runUniquenessCheck()" class="audit">Check Build</button>
+                <label class="checkbox-label" style="display:none;"> <input type="checkbox" id="showQueensOnTest"> Show Solutions</label>
+                <button id="applyBtn" onclick="applyToTabs()" disabled>Apply to Tabs</button>
+                <button onclick="resetBuilderBoard()">Reset</button>
+                <button onclick="clearBoard()">Clear</button>
+            </div>
+            <textarea id="output" placeholder="Board JSON..." oninput="markBoardAsDirty()"></textarea>
+            <div class="btn-row controls-bar" style="margin-top: 10px;">
+                <button id="shareBtn" onclick="sharePuzzle()">✉ Share</button>
+                <button onclick="importLayout()">📥 Import</button>
+            </div>
+        </div>
+
+        <div class="module">
+            <div id="builder-log" class="log"></div>
+        </div>
+    </div>
+
+    <div id="solver-tab" class="tab-content">
+        <div class="module">
+            <div class="controls-bar">
+                <button class="primary" onclick="revealSolution()">▶ Auto Solve</button>
+                <button onclick="switchTab('play-tab')">Back to Play</button>
+            </div>
+        </div>
+        <div class="board-wrapper">
+            <div id="solver-cols" class="labels-top"></div> 
+            <div style="display: flex;">
+                <div id="solver-rows" class="labels-left"></div>
+                <div class="grid-area" style="position: relative;">
+                    <div id="solver-grid" class="grid"></div>
+                </div>
+            </div>
+        </div>
+        <div class="module"><div id="solver-log" class="log">> Click Auto Solve to see the path.</div></div>
+    </div>
+
+    <script>
+        // ============================================================
+        // 1. STATE MANAGEMENT
+        // ============================================================
+        
+        /** Global board layouts */
+        let activeLayout = [];      
+        let builderLayout = [];     
+        let solverLayout = [];      
+        
+        let curN = 8;
+        let startPos = {r:0, c:0};
+        
+        /** Play State */
+        let knightPos = null;
+        let visitedColors = new Set();
+        let history = [];
+        let isGameActive = false, isGameOver = false;
+        let gameStartTime = 0, timerRequest = null;
+        
+        /** Solver State */
+        let solverKnightPos = null;
+        let solverVisited = new Set();
+        let isSolving = false;
+
+        /** Builder State */
+        let buildStage = 1; 
+        let buildType = 1;  
+        let knightPath = [];
+        let isManualEditActive = false;
+        let stopFlowRequested = false;
+        let isPainterActive = false;
+        let selectedBuilderColor = 0;
+        let levelLibrary = null;
+        
+        let isBoardValidated = true;
+        let gameTimerElement = null;
+        let usedColourNumbers = [];
+
+        /** Allowed Knight movements */
+        const JUMPS = [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]];
+        
+        /** Utility to check if a sequence is a valid Knight's move */
+        const isKnightMove = (last, current) => Math.abs(last.r - current.r) * Math.abs(last.c - current.c) === 2;
+
+        // ============================================================
+        // 2. RENDERING & TABS
+        // ============================================================
+        
+        /**
+         * Handles tab navigation and implements security checks 
+         * to prevent leaving active processes or unvalidated boards.
+         * @param {string} tabId - The DOM ID of the tab to switch to.
+         */
+        function switchTab(tabId) {
+            if (document.getElementById('builder-tab').classList.contains('active') && tabId !== 'builder-tab') {
+                if (!isBoardValidated && buildType !== 1) { 
+                    alert("Please 'Check Build' and 'Apply to Tabs' before leaving the Builder, or click 'Clear' to start over.");
+                    return; 
+                }
+            }
+
+            document.querySelectorAll('.tab-content, .tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById('btn-' + tabId.replace('-tab', '')).classList.add('active');
+            
+            if (tabId === 'play-tab') {
+                resetGame();
+                renderGrid('play', activeLayout);
+            }
+            if (tabId === 'builder-tab') {
+                initBuildPalette();
+                renderGrid('builder', builderLayout);
+            }
+            if (tabId === 'solver-tab') {
+                solverLayout = JSON.parse(JSON.stringify(activeLayout));
+                resetSolver();
+                renderGrid('solver', solverLayout);
+            }
+        }
+
+        /**
+         * Core rendering engine for all three modes (Play, Build, Solve).
+         * Builds the DOM elements and applies contextual styling based on active logic.
+         */
+        function renderGrid(type, layoutToUse, steps = []) {
+            const grid = document.getElementById(type + '-grid');
+            const colContainer = document.getElementById(type + '-cols');
+            const rowContainer = document.getElementById(type + '-rows');
+
+            if (!grid || !layoutToUse || !layoutToUse.length) return;
+            
+            grid.innerHTML = '';
+            if (colContainer) colContainer.innerHTML = '';
+            if (rowContainer) rowContainer.innerHTML = '';
+
+            document.documentElement.style.setProperty('--size', curN);
+            grid.style.setProperty('--size', curN);
+            
+            if (type === 'play') grid.style.visibility = isGameActive ? 'visible' : 'hidden';
+
+            if (colContainer && rowContainer && colContainer.children.length === 0) {
+                for (let i = 0; i < curN; i++) {
+                    const cLabel = document.createElement('div'); cLabel.className = 'label label-col'; cLabel.innerText = i + 1; colContainer.appendChild(cLabel);
+                    const rLabel = document.createElement('div'); rLabel.className = 'label label-row'; rLabel.innerText = i + 1; rowContainer.appendChild(rLabel);
+                }
+            }
+
+            layoutToUse.forEach((row, r) => row.forEach((col, c) => {
+                const div = document.createElement('div');
+                div.setAttribute('data-r', r);
+                div.setAttribute('data-c', c);
+                
+                let isVisited = false;
+                let isKnight = false;
+                
+                if (type === 'play') {
+                    isVisited = (col < curN && visitedColors.has(col));
+                    isKnight = (knightPos && r === knightPos.r && c === knightPos.c);
+                } else if (type === 'solver') {
+                    isVisited = (col < curN && solverVisited.has(col));
+                    isKnight = (solverKnightPos && r === solverKnightPos.r && c === solverKnightPos.c);
+                }
+
+                div.className = `cell ${col === 99 || col === -1 ? 'v-neutral' : 'c' + col} ${isVisited ? 'visited' : ''} ${isKnight ? 'current-region' : ''}`;
+            
+                if (type === 'play') {
+                    const index = steps.findIndex(s => s.pos.r === r && s.pos.c === c);
+                    if(index!=-1 && (div.classList.contains('visited') || isKnight)){
+                        div.innerText = index;
+                    }
+                    if(knightPos && knightPos.r === r && knightPos.c === c && layoutToUse[r][c]!==99){
+                        let message = "\n> "+steps.length+". Knight moved to "+(knightPos.r+1)+","+(knightPos.c+1)+" - "+getGameTime()+".";
+                        addLog(message, "play");
+                    }
+                }else if(type === 'solver') {
+                    const index = steps.findIndex(s => s.r === r && s.c === c) + 1;
+                    if(index!=0 && (div.classList.contains('visited') || isKnight)){
+                        div.innerText = index;
+                    }
+                }
+                
+                if (isKnight) {
+                    div.classList.add('knight');
+                } 
+
+                let checkR = startPos.r, checkC = startPos.c;
+                if (type === 'builder') {
+                    if (layoutToUse[r][c] === 99){
+                        div.classList.add('start-marker');
+                        div.innerText = '♞';
+                    } 
+                } else {
+                    if (r === startPos.r && c === startPos.c) div.classList.add('start-marker');
+                }
+
+                div.onpointerenter = () => {
+                    if (type === 'builder' && isPainterActive) {
+                        paintCell(r, c);
+                    }
+                };
+
+                grid.appendChild(div);
+            }));
+        }
+
+        // ============================================================
+        // 3. BUILDER LOGIC
+        // ============================================================
+        
+        /**
+         * Sets the internal state for the current builder methodology.
+         */
+        function setBuildMode(mode) {
+            buildType = Number(mode);
+            
+            if(buildType === 1){
+                document.getElementById('status-builder').innerText = "Mode: Automatic Design";
+            }else if(buildType === 2){
+                document.getElementById('status-builder').innerText = "Mode: Manual Design";
+                clearBoard();
+            }else if(buildType ===3){
+                buildStage = 3;
+                document.getElementById('status-builder').innerText = "Mode: Edit";
+            }
+            
+            document.getElementById('applyBtn').disabled = true;
+            console.log("Build mode:"+buildType);
+            initBuildPalette();
+        }
+
+        /**
+         * Wipes the builder arrays and UI back to an empty state.
+         */
+        function clearBoard(){
+            curN = parseInt(document.getElementById('boardSize').value);
+            knightPath = [];
+            buildStage = 1;
+            builderLayout = Array(curN).fill(null).map(() => Array(curN).fill(-1));
+            
+            document.getElementById('builder-cols').innerHTML = '';
+            document.getElementById('builder-rows').innerHTML = '';
+            renderGrid('builder', builderLayout);
+        }
+
+        /**
+         * Dynamically generates UI buttons/palettes based on current build phase.
+         */
+        function initBuildPalette() {
+            const p = document.getElementById('palette'); 
+            p.innerHTML = '';
+            
+            if(buildType === 1){
+                p.innerHTML = `<button onclick="generateNewBoard()" id="mainBtn" class="primary">Generate Random</button>`;
+                return;
+            } else if(buildType === 2){ 
+                if (buildStage === 1) {
+                    p.innerHTML = `<div style="font-weight:bold; color:var(--accent)">STAGE 1: Set Knight Path (${knightPath.length}/${curN + 1})</div>
+                                   <div style="font-size:11px; color:#666">Click squares in sequence to form a valid Knight's path.</div>
+                                   <button onclick="undoPathPosition()">◀ Undo</button>`; 
+                    
+                    setBoardValidationState(false);
+                } else if(buildStage === 2){                  
+                    p.innerHTML = `<div style="font-weight:bold; color:var(--accent)">STAGE 2: Check the path is OK with the "Check Build" button.</div>`;             
+                } else if(buildStage === 3){
+                    setBoardValidationState(false);
+                    
+                    p.innerHTML = `<div style="font-weight:bold; color:var(--accent)">STAGE 3: Now paint your board</div>`;  
+                
+                    const colorsDiv = document.createElement('div');
+                    colorsDiv.style.display = "flex";
+                    for(let i=0; i<curN; i++) {
+                        const d = document.createElement('div');
+                        d.className = `palette-color c${i} ${i === selectedBuilderColor ? 'active' : ''}`;
+                        d.onclick = () => { selectedBuilderColor = i; initBuildPalette(); };
+                        colorsDiv.appendChild(d);
+                    }
+                    p.appendChild(colorsDiv);
+                    
+                    const voidDiv = document.createElement('div');
+                    voidDiv.style.display = "flex";
+                    
+                    const voidLabel = document.createElement('label');
+                    voidLabel.className = "void-label";
+                    voidLabel.innerText = "Void Space: ";
+                    
+                    const voidSpace = document.createElement('div');
+                    voidSpace.className = `palette-color v-neutral ${selectedBuilderColor === -1 ? 'active' : ''}`;
+                    voidSpace.onclick = () => { selectedBuilderColor = -1; initBuildPalette(); };
+                    
+                    voidDiv.appendChild(voidLabel)
+                    voidDiv.appendChild(voidSpace);
+                    p.appendChild(voidDiv);
+                } 
+                return;
+            } else if(buildType === 3){
+                const colorsDiv = document.createElement('div');
+                colorsDiv.style.display = "flex";
+                for(let i=0; i<curN; i++) {
+                    const d = document.createElement('div');
+                    d.className = `palette-color c${i} ${i === selectedBuilderColor ? 'active' : ''}`;
+                    d.onclick = () => { selectedBuilderColor = i; initBuildPalette(); };
+                    colorsDiv.appendChild(d);
+                }
+                p.appendChild(colorsDiv);
+                
+                const voidDiv = document.createElement('div');
+                voidDiv.style.display = "flex";
+                    
+                const voidLabel = document.createElement('label');
+                voidLabel.innerText = "Void Space: ";
+                voidLabel.className = "void-label";
+                
+                const voidSpace = document.createElement('div');
+                voidSpace.className = `palette-color v-neutral ${selectedBuilderColor === -1 ? 'active' : ''}`;
+                voidSpace.onclick = () => { selectedBuilderColor = -1; initBuildPalette(); };
+                
+                voidDiv.appendChild(voidLabel)
+                voidDiv.appendChild(voidSpace);
+                p.appendChild(voidDiv);
+                    
+                return;
+            }
+        }
+
+        /**
+         * Reverts the most recent manual placement in the builder's pathing stage.
+         */
+        function undoPathPosition(){
+            if (knightPath.length === 0) return; 
+
+            const removedPos = knightPath.pop();
+            usedColourNumbers.pop();
+            
+            builderLayout[removedPos.r][removedPos.c] = -1;
+            
+            renderGrid('builder', builderLayout);
+            initBuildPalette(); 
+        }
+
+        /**
+         * Guarantees a randomly distributed unassigned color during path generation.
+         */
+        function pickUnusedColor() {
+            const allNumbers = Array.from({ length: curN }, (_, i) => i);
+            const availableNumbers = allNumbers.filter(num => !usedColourNumbers.includes(num));
+
+            if (availableNumbers.length === 0) {
+                console.warn("No available colors left!");
+                return null; 
+            }
+
+            const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+            const chosenNumber = availableNumbers[randomIndex];
+            
+            usedColourNumbers.push(chosenNumber);
+            return chosenNumber;
+        }
+
+        /**
+         * Main interaction handler for grid modifications inside the Builder Tab.
+         */
+        function paintCell(r, c) {
+            const cellEl = document.querySelector(`#builder-grid .cell[data-r="${r}"][data-c="${c}"]`);
+            
+            if (buildStage === 1) {
+                if (knightPath.length === 0) {
+                    knightPath.push({r, c});
+                    builderLayout[r][c] = 99; 
+                    cellEl.className = 'cell';
+                    cellEl.classList.add('v-neutral', 'start-marker');
+                    cellEl.innerText = '♞';
+                    
+                    usedColourNumbers = [];
+                } else if (knightPath.length < curN + 1) {
+                    const last = knightPath[knightPath.length - 1];
+                    if (isKnightMove(last, {r, c}) && !knightPath.some(p => p.r === r && p.c === c)) {
+                        knightPath.push({r, c});
+                        builderLayout[r][c] = pickUnusedColor(); 
+                        cellEl.className = 'cell';
+                        
+                        if (builderLayout[r][c] === -1) {
+                            cellEl.classList.add('v-neutral');
+                        }else{
+                            cellEl.classList.add('c' + builderLayout[r][c], 'marker');
+                        }
+                    }
+                }
+                
+                if (knightPath.length === curN + 1) {
+                    buildStage = 2;
+                }
+                initBuildPalette();                 
+                
+            } else if(buildStage === 3){
+                setBoardValidationState(false);
+                document.getElementById('applyBtn').disabled = true; 
+                
+                const isPartOfPath = knightPath.some(pos => pos.r === r && pos.c === c);
+            
+                if (cellEl && !isPartOfPath) {
+                    builderLayout[r][c] = selectedBuilderColor;
+                    cellEl.className = 'cell'; 
+                    
+                    if (selectedBuilderColor === -1) {
+                        cellEl.classList.add('v-neutral');
+                    } else {
+                        cellEl.classList.add('c' + selectedBuilderColor);
+                    }
+                }
+            }
+            document.getElementById('output').value = JSON.stringify(builderLayout);
+        }
+
+        /**
+         * Validates builder layout and flags if there are multi-solution anomalies.
+         */
+        function runUniquenessCheck() {
+            const sols = findAllSolutions(builderLayout, curN);
+            const log = document.getElementById('builder-log');
+            const startPosition = findStartingSquare(builderLayout);
+            const solutionNumber = countSolutions(builderLayout, startPosition, 0, 0);
+            
+            if (sols.length === 0) {
+                log.innerHTML = "<span class='lose-text'>ERROR: Current regions make the path impossible. There are "+solutionNumber+" solutions.</span>";
+                return;
+            }
+            
+            if(knightPath.length === 0){
+                knightPath = [...sols[0]];
+                knightPath.unshift(startPosition);
+            }
+            
+            visualizeGhostPaths(sols);
+            
+            if (sols.length > 1) {
+                log.innerHTML = `<span class='lose-text'>CONFLICT: Found ${sols.length} solutions.</span><br>Ghost paths (X) show alternative routes. Set these to Neutral or -1 to block them.`;
+                document.getElementById('applyBtn').disabled = true;
+                if(buildStage === 2){
+                    buildStage = 1;
+                    initBuildPalette();
+                }       
+                
+                setBoardValidationState(false);
+            } else {
+                log.innerHTML = "<span class='win-text'>SUCCESS: Unique solution verified!</span>";
+                document.getElementById('applyBtn').disabled = false;
+                
+                if(buildStage === 2){
+                    buildStage = 3;
+                    initBuildPalette();
+                }   
+                
+                setBoardValidationState(true);
+            }
+        }
+
+        /**
+         * Scans the 2D layout for exactly one starting value (99).
+         */
+        function findStartingSquare(layout) {
+            let targetR = -1;
+            let targetC = -1;
+            let count99 = 0;
+
+            for (let r = 0; r < layout.length; r++) {
+                for (let c = 0; c < layout[r].length; c++) {
+                    if (layout[r][c] === 99) {
+                        targetR = r;
+                        targetC = c;
+                        count99++; 
+                    }
+                }
+            }
+
+            if (count99 === 0) {
+                console.error("Error: No 99 found on the board.");
+                return null;
+            }
+
+            if (count99 > 1) {
+                console.error(`Error: Found ${count99} starting squares (99). There should be exactly one.`);
+                return null;
+            }
+
+            return { r: targetR, c: targetC };
+        }
+
+        /**
+         * Resets a modified builder canvas back to the actively playing baseline.
+         */
+        function resetBuilderBoard() {
+            builderLayout = JSON.parse(JSON.stringify(activeLayout));
+            
+            curN = builderLayout.length;
+            document.documentElement.style.setProperty('--size', curN);
+            document.getElementById('boardSize').value = curN; 
+
+            renderGrid('builder', builderLayout);
+            document.getElementById('output').value = JSON.stringify(builderLayout);
+            
+            setBoardValidationState(true);
+            addLog("\n> Builder reset to the active game board.", "builder", true);
+        }
+
+        /**
+         * Analyzes competing solver paths and highlights divergence points in the UI.
+         */
+        function visualizeGhostPaths(sols) {
+            const grid = document.getElementById('builder-grid');
+    
+            grid.querySelectorAll('.duplicate-marker').forEach(el => {
+                el.classList.remove('duplicate-marker');
+            });
+
+            const primaryJumps = knightPath.slice(1);
+
+            sols.forEach(path => {
+                for (let i = 0; i < path.length; i++) {
+                    const pos = path[i];
+                    const primaryPos = primaryJumps[i];
+
+                    if (!primaryPos || pos.r !== primaryPos.r || pos.c !== primaryPos.c) {
+                        const cell = grid.querySelector(`[data-r="${pos.r}"][data-c="${pos.c}"]`);
+                        if (cell) {
+                            cell.classList.add('duplicate-marker');
+                        }
+                        break; 
+                    }
+                }
+            });
+        }
+
+        /**
+         * Drives loop to procedurally calculate a fully validated automatic board.
+         */
+        function generateNewBoard() {
+            curN = parseInt(document.getElementById('boardSize').value);
+            document.documentElement.style.setProperty('--size', curN);
+            let attempts = 0;
+            while (attempts < 2000) {
+                attempts++;
+                knightPath = generateSeedPath(curN + 1);
+                let tempLayout = buildRegions(knightPath);
+                if (countSolutions(tempLayout, knightPath[0], 0, 0) === 1) {
+                    builderLayout = tempLayout; break;
+                }
+            }
+            document.getElementById('output').value = JSON.stringify(builderLayout);
+            renderGrid('builder', builderLayout);
+            document.getElementById('applyBtn').disabled = false;
+        }
+
+        /**
+         * Plots a randomized knight's tour line.
+         */
+        function generateSeedPath(len) {
+            let path = []; let r = Math.floor(Math.random() * curN), c = Math.floor(Math.random() * curN);
+            path.push({ r, c });
+            while (path.length < len) {
+                let last = path[path.length - 1];
+                let moves = JUMPS.map(j => ({ r: last.r + j[0], c: last.c + j[1] }))
+                    .filter(p => p.r >= 0 && p.r < curN && p.c >= 0 && p.c < curN && !path.some(o => o.r === p.r && o.c === p.c));
+                if (moves.length === 0) return generateSeedPath(len);
+                path.push(moves[Math.floor(Math.random() * moves.length)]);
+            }
+            return path;
+        }
+
+        /**
+         * Fills in empty spaces surrounding the seed path organically.
+         */
+        function buildRegions(path) {
+            let board = Array(curN).fill().map(() => Array(curN).fill(-1));
+            board[path[0].r][path[0].c] = 99;
+            let ids = Array.from({ length: curN }, (_, i) => i).sort(() => Math.random() - 0.5);
+            for (let i = 1; i < path.length; i++) board[path[i].r][path[i].c] = ids[i - 1];
+            for (let k = 0; k < curN * curN * 2; k++) {
+                for (let i = 0; i < curN; i++) {
+                    let cells = [];
+                    for (let r = 0; r < curN; r++) for (let c = 0; c < curN; c++) if (board[r][c] === i) cells.push({ r, c });
+                    if (!cells.length) continue;
+                    let b = cells[Math.floor(Math.random() * cells.length)];
+                    let d = [[0, 1], [1, 0], [0, -1], [-1, 0]][Math.floor(Math.random() * 4)];
+                    let nr = b.r + d[0], nc = b.c + d[1];
+                    if (nr >= 0 && nr < curN && nc >= 0 && nc < curN && board[nr][nc] === -1) board[nr][nc] = i;
+                }
+            }
+            return board;
+        }
+
+        /**
+         * Promotes builder state into fully active play/solve environment.
+         */
+        function applyToTabs() { 
+            activeLayout = JSON.parse(JSON.stringify(builderLayout)); 
+            startPos = findStartingSquare(activeLayout);
+            alert("Success: New board ready in Play/Solve.");
+            switchTab('play-tab'); 
+        }
+        
+        /**
+         * Utilizes Native OS sharing where possible for board propagation.
+         */
+        async function sharePuzzle() {
+            if (!isBoardValidated) {
+                addLog("\n> Cannot share: You must 'Test Build' and 'Apply' your changes first.", "builder");
+                return;
+            }
+
+            const boardJson = document.getElementById('output').value;
+            if (!boardJson || boardJson === "[]") return addLog("\n> No board to share!", "builder");
+
+            const encodedBoard = btoa(unescape(encodeURIComponent(boardJson)));
+            const baseUrl = window.location.href.split('?')[0];
+            const shareUrl = `${baseUrl}?board=${encodedBoard}`;
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title: "Queens Logic Challenge", text: "Try this puzzle!", url: shareUrl });
+                } catch (err) { copyToClipboard(shareUrl); }
+            } else { copyToClipboard(shareUrl); }
+        }
+
+        /**
+         * Tries to write text string to device clipboard.
+         */
+        function copyToClipboard(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => addLog("Link copied!", "builder"))
+                    .catch(() => fallbackCopy(text));
+            } else { fallbackCopy(text); }
+        }
+
+        /**
+         * Secondary manual clipboard approach for older browser compatibility.
+         */
+        function fallbackCopy(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus(); textArea.select();
+            try {
+                if (document.execCommand('copy')) addLog("Link copied!","builder");
+                else addLog("Please copy the URL manually. \n"+text, "builder");
+            } catch (err) { addLog("\n> Copy failed.", "builder"); }
+            
+            document.body.removeChild(textArea);
+        }
+
+        /**
+         * Safely injects manual text JSON into board state logic.
+         */
+        function importLayout() {
+            clearBoard();
+            try {
+                const imported = JSON.parse(document.getElementById('output').value);
+                builderLayout = imported; curN = imported.length;
+                document.documentElement.style.setProperty('--size', curN);
+                renderGrid('builder', builderLayout); 
+                document.getElementById('applyBtn').disabled = true;
+            } catch(e) { alert("Invalid JSON!"); }
+        }
+
+        /**
+         * State flag toggle for UI interaction locking.
+         */
+        function setBoardValidationState(state){
+            isBoardValidated = state;
+            document.getElementById('applyBtn').disabled = !state;
+            document.getElementById('shareBtn').disabled = !state;
+        }
+
+        /**
+         * Detects direct typing in the JSON output box and requires a new sanity check.
+         */
+        function markBoardAsDirty() {
+            setBoardValidationState(false);
+            const status = document.getElementById('status-builder');
+            status.innerText = "Mode: Editing Output Text";
+        }
+
+        /**
+         * Dynamic message formatting attached to specific UI logs.
+         */
+        function addLog(message, logType, firstMessage = false){
+            if(firstMessage){
+                document.getElementById(`${logType}-log`).innerText = message;
+            }else{
+                document.getElementById(`${logType}-log`).innerText += message;
+            }
+            document.getElementById(`${logType}-log`).scrollTop = document.getElementById(`${logType}-log`).scrollHeight;
+        }
+
+        /* ============================================================
+           4. CORE LOGIC (SOLVERS)
+           ============================================================ */
+           
+        /**
+         * Recursive mathematical backtrack to strictly test for one possible output.
+         */
+        function countSolutions(grid, pos, mask, depth) {
+            if (depth === curN) return 1;
+            let total = 0;
+            for (let j of JUMPS) {
+                let nr = pos.r + j[0], nc = pos.c + j[1];
+                if (nr >= 0 && nr < curN && nc >= 0 && nc < curN) {
+                    let col = grid[nr][nc];
+                    if (col >= 0 && col < curN && !(mask & (1 << col))) {
+                        total += countSolutions(grid, { r: nr, c: nc }, mask | (1 << col), depth + 1);
+                        if (total > 1) return 2;
+                    }
+                }
+            }
+            return total;
+        }
+
+        /**
+         * Traces and captures the exact coordinate sequence of potential solutions.
+         */
+        function findAllSolutions(grid, n) {
+            let sols = [];
+            let start = findStartingSquare(grid); 
+            
+            function solve(curr, visited, path) {
+                if (visited.size === n) { sols.push(path); return; }
+                if (sols.length > 5) return; 
+
+                JUMPS.forEach(j => {
+                    let nr = curr.r + j[0], nc = curr.c + j[1];
+                    if (nr >= 0 && nr < n && nc >= 0 && nc < n) {
+                        let color = grid[nr][nc];
+                        if (color >= 0 && color < n && !visited.has(color)) {
+                            const nextV = new Set(visited);
+                            nextV.add(color);
+                            solve({r: nr, c: nc}, nextV, [...path, {r: nr, c: nc}]);
+                        }
+                    }
+                });
+            }
+            if (start) solve(start, new Set(), []);
+            return sols;
+        }
+
+        /**
+         * Stops active animations and clears the view.
+         */
+        function resetSolver() {
+            isSolving = false;
+            solverVisited = new Set();
+            solverKnightPos = { ...startPos };
+            document.getElementById('solver-log').innerText = "> Board synchronized. Click Auto Solve.";
+        }
+
+        /**
+         * Coordinates DOM grid rendering alongside active backend solving arrays.
+         */
+        async function revealSolution() {
+            if (isSolving) return;
+            resetSolver();
+            isSolving = true;
+            addLog("\n> Searching for path...", "solver");
+
+            const sols = findAllSolutions(solverLayout, curN);
+
+            if (sols && sols.length > 0) {
+                addLog("\n> Path found! Visualizing...", "solver");
+                
+                const steps = sols[0]; 
+                let stepNum = 0;
+                let message = "";
+                
+                const startSquare = findStartingSquare(solverLayout);
+                message = "\n> Start Position: "+(startSquare.r+1)+","+(startSquare.c+1);
+                addLog(message, "solver");
+                
+                for (let s of steps) {
+                    stepNum++;
+                    await new Promise(r => setTimeout(r, 800));
+                    const oldColor = solverLayout[solverKnightPos.r][solverKnightPos.c];
+                    if (oldColor < curN) solverVisited.add(oldColor);
+                    solverKnightPos = { r: s.r, c: s.c };
+                    renderGrid('solver', solverLayout, steps);
+                        
+                    message = "\n> "+stepNum+". Knight moved to "+(s.r+1)+","+(s.c+1)+".";
+                    addLog(message, "solver");
+                }
+                
+                addLog("\n> Complete tour demonstrated.", "solver");
+            } else {
+                addLog("\n> Error: No path found for this layout.", "solver");
+            }
+            isSolving = false;
+        }
+
+        /* ============================================================
+           5. PLAY LOGIC
+           ============================================================ */
+           
+        /**
+         * Manages UI transition state to start live gameplay.
+         */
+        function startCountdown() {
+            resetGame();
+            if(!activeLayout.length) return;
+            const overlay = document.getElementById('countdown-overlay');
+            overlay.style.display = 'flex';
+            let count = 3; overlay.innerText = count;
+            const interval = setInterval(() => {
+                count--;
+                if (count > 0) overlay.innerText = count;
+                else { clearInterval(interval); overlay.style.display = 'none'; beginGame(); }
+            }, 700);
+        }
+
+        /**
+         * Commences timer and attaches gameplay constraints to interaction logic.
+         */
+        function beginGame() {
+            isGameActive = true; isGameOver = false;
+            knightPos = { ...startPos }; visitedColors = new Set(); history = [];
+            
+            gameTimerElement = document.getElementById('game-timer'); 
+            
+            gameStartTime = performance.now(); updateTimer(); renderGrid('play', activeLayout);
+            addLog("\n> Move to an adjacent region!", "play", true);
+        }
+
+        /**
+         * Asynchronous self-calling loop targeting specific millisecond intervals.
+         */
+        function updateTimer() {
+            if (!isGameActive || isGameOver) return;
+            
+            if (gameTimerElement) {
+                gameTimerElement.innerText = getGameTime();
+            }
+            
+            timerRequest = requestAnimationFrame(updateTimer);
+        }
+
+        /**
+         * Translates cell taps into verified path movements handling validation.
+         */
+        function handleClick(r, c) {
+            if (!isGameActive || isGameOver) return;
+
+            const dr = Math.abs(r - knightPos.r), dc = Math.abs(c - knightPos.c);
+            const targetColor = activeLayout[r][c];
+            const currentColor = activeLayout[knightPos.r][knightPos.c];
+
+            if (dr * dc !== 2 || targetColor === 99 || targetColor === -1 || targetColor === currentColor || visitedColors.has(targetColor)) return;
+
+            const oldColor = activeLayout[knightPos.r][knightPos.c];
+            if (oldColor < curN) visitedColors.add(oldColor);
+            
+            history.push({ pos: { ...knightPos }, colorAdded: oldColor });
+            knightPos = { r, c }; 
+            renderGrid('play', activeLayout, history); 
+            checkGameState();
+        }
+
+        /**
+         * Examines grid geometry vs internal arrays for win/loss criteria handling.
+         */
+        function checkGameState() {
+            if (visitedColors.size === curN - 1) { 
+                showEndScreen(true); 
+                return; 
+            }
+
+            const currentOccupiedColor = activeLayout[knightPos.r][knightPos.c];
+
+            let hasLegalMoves = JUMPS.some(j => {
+                let r = knightPos.r + j[0];
+                let c = knightPos.c + j[1];
+                
+                if (r < 0 || r >= curN || c < 0 || c >= curN) return false; 
+                
+                const targetColor = activeLayout[r][c];
+                return (
+                    targetColor !== 99 && 
+                    targetColor !== currentOccupiedColor && 
+                    !visitedColors.has(targetColor) &&
+                    targetColor !== -1 
+                );
+            });
+
+            if (!hasLegalMoves) {
+                showEndScreen(false);
+            }
+        }
+
+        /**
+         * Overrides game state back to initialized pre-game environment.
+         */
+        function resetGame() {
+            isGameActive = isGameOver = false; 
+            if (timerRequest) cancelAnimationFrame(timerRequest);
+            visitedColors = new Set(); history = [];
+            knightPos = { ...startPos }; 
+            document.getElementById('game-timer').innerText = "00:00:00";
+            document.getElementById('end-overlay').style.display = 'none'; 
+            
+            const overlay = document.getElementById('countdown-overlay');
+            if (overlay) {
+                overlay.style.display = 'flex';
+                overlay.innerText = "♛";
+            }
+            renderGrid('play', activeLayout);
+            
+            addLog("> Ready to play.", "play", true);
+        }
+
+        /**
+         * Removes most recently plotted action and corresponding history markers.
+         */
+        function undoMove() {
+            if (!history.length || isGameOver) return;
+            
+            addLog("\n> Undo Move - "+getGameTime()+".", "play");
+            
+            const overlay = document.getElementById('end-overlay');
+            overlay.style.display = 'none';
+            
+            const last = history.pop(); if (last.colorAdded < curN) visitedColors.delete(last.colorAdded);
+            knightPos = last.pos; renderGrid('play', activeLayout, history);
+        }
+
+        /**
+         * Translates ms values mathematically into standard UI time formatting.
+         */
+        function getGameTime(){
+            if (!isGameActive || isGameOver) return;
+            const elapsed = performance.now() - gameStartTime;
+            const min = Math.floor(elapsed / 60000), sec = Math.floor((elapsed % 60000) / 1000), cent = Math.floor((elapsed % 1000) / 10);
+            return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}:${String(cent).padStart(2, '0')}`;    
+        }
+
+        /**
+         * Disables interactions and triggers DOM UI overlay for match resolution.
+         */
+        function showEndScreen(win) {
+            isGameOver = win; 
+            if(win){
+                cancelAnimationFrame(timerRequest);
+            }
+            
+            const overlay = document.getElementById('end-overlay');
+            document.getElementById('result-title').innerText = win ? "Complete!" : "No More Moves";
+            document.getElementById('result-title').className = win ? "win-text" : "lose-text";
+            document.getElementById('result-desc').innerText = win ? `Final Time: ${document.getElementById('game-timer').innerText}` : "Press \"Undo\" to go back through the moves.";
+            overlay.style.display = 'flex';
+        }
+
+        // ============================================================
+        // 7. INITIALIZATION & DRAG SYSTEM
+        // ============================================================
+
+        window.addEventListener('pointerup', () => isPainterActive = false);
+        window.addEventListener('pointercancel', () => isPainterActive = false);
+
+        document.body.addEventListener('pointerdown', (e) => {
+            if (e.target && e.target.classList.contains('cell')) {
+                if (e.target.closest('#builder-grid')) {
+                    isPainterActive = true;
+                    e.target.releasePointerCapture(e.pointerId);
+                    
+                    const r = parseInt(e.target.getAttribute('data-r'));
+                    const c = parseInt(e.target.getAttribute('data-c'));
+                    paintCell(r, c);
+                }
+                
+                if (e.target.closest('#play-grid')) {
+                    const r = parseInt(e.target.getAttribute('data-r'));
+                    const c = parseInt(e.target.getAttribute('data-c'));
+                    handleClick(r, c);
+                }
+            }
+        });
+
+        document.body.addEventListener('pointermove', (e) => {
+            if (!isPainterActive || buildType !== 3 || buildStage !== 3) return;
+            e.preventDefault(); 
+
+            const target = document.elementFromPoint(e.clientX, e.clientY);
+            
+            if (target && target.classList.contains('cell')) {
+                if (target.closest('#builder-grid')) {
+                    const r = parseInt(target.getAttribute('data-r'));
+                    const c = parseInt(target.getAttribute('data-c'));
+                    if (!isNaN(r) && !isNaN(c)) {
+                        paintCell(r, c);
+                    }
+                }
+            }
+        }, { passive: false });
+
+        /**
+         * Root Bootstrapper. Handles shared URLs, decoding parameters and initiating grids.
+         */
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const boardData = urlParams.get('board');
+
+            if (boardData) {
+                const decodedJson = decodeURIComponent(escape(atob(boardData)));
+                const sharedLayout = JSON.parse(decodedJson);
+                if (Array.isArray(sharedLayout)) {
+                    activeLayout = sharedLayout;
+                    document.getElementById('output').value = decodedJson;
+                    importLayout();
+                    curN = activeLayout.length;
+                    document.getElementById('boardSize').value = curN;
+                }
+            } else {
+                generateNewBoard(); 
+                document.getElementById('applyBtn').disabled = true; 
+                activeLayout = JSON.parse(JSON.stringify(builderLayout));
+            }
+
+            startPos = findStartingSquare(activeLayout);
+            
+            if (!startPos) {
+                startPos = { r: 0, c: 0 };
+            }
+            
+            renderGrid('play', activeLayout);
+        });
+        
+    </script>
+</body>
+</html>
