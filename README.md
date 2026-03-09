@@ -56,8 +56,12 @@ The **Build** tab is a fully-featured level editor. It allows you to generate ra
 ### 1. Automatic Design (Procedural Generation)
 <img src="images/screenshot3.png" width="300">
 
+* Select **Build Mode** "Automatic".
 * Select your **Size** (5x5 to 10x10).
 * Click **Generate Random**. The engine will mathematically guarantee a board with exactly *one* valid solution.
+
+<img src="images/screenshot4.png" width="300">
+
 * Click **Apply to Tabs** to send it to the Play and Solve environments.
 
 ### 2. Manual Design (Plotting a Path)
