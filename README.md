@@ -13,6 +13,7 @@
 * [🛠️ Customizing (Build Tab)](#️-the-build-tab-customize-your-challenge)
 * [✉️ Sharing Challenges](#️-sharing-challenges)
 * [💡 The Solve Tab](#-the-solve-tab-watch-and-learn)
+* [🎯 Core Features](#-core-features)
 * [🛠️ Technical Info](#️-technical-implementation)
 
 ---
@@ -123,11 +124,11 @@ Stuck on a puzzle a friend sent you? Let the engine do the heavy lifting.
 
 ---
 
-## 🛡️ The Mission
-This project modernizes classic computational mathematics for the daily-puzzle era:
-1.  **P2P Challenges:** Competition happens via direct links. No manipulated leaderboards.
-2.  **Creative Freedom:** Architect and validate your own logic puzzles with a touch-friendly UI.
-3.  **Zero Friction:** No apps to install, no servers to query, no logins to create.
+## 🎯 Core Features
+I built this game to be as frictionless as possible. No logins, no databases, just pure logic puzzles:
+1. **Instant Sharing:** Custom board layouts are encoded directly into the URL. Copy the link, send it to a friend, and they can play immediately.
+2. **Custom Level Builder:** A drag-to-paint UI lets anyone design their own grid, while the engine mathematically verifies if the board is solvable.
+3. **Learn the Logic:** The built-in solver doesn't just give you the answer. It animates the exact path so players can understand the mechanics.
 
 ---
 
