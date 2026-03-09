@@ -56,7 +56,7 @@ The **Build** tab is a fully-featured level editor. It allows you to generate ra
 ### 1. Automatic Design (Procedural Generation)
 <img src="images/screenshot3.png" width="300">
 
-* Select **Build Mode** "Automatic".
+* Switch **Build Mode** to **Automatic**.
 * Select your **Size** (5x5 to 10x10).
 * Click **Generate Random**. The engine will mathematically guarantee a board with exactly *one* valid solution.
 
@@ -65,10 +65,29 @@ The **Build** tab is a fully-featured level editor. It allows you to generate ra
 * Click **Apply to Tabs** to send it to the Play and Solve environments.
 
 ### 2. Manual Design (Plotting a Path)
-* Switch the dropdown to **Manual**.
-* **Stage 1:** Click squares in sequence to manually draw a hidden Knight's path. 
+
+* Switch **Build Mode** to **Manual**.
+* **Stage 1:** Click squares in sequence to manually draw a hidden Knight's path.
+
+<img src="images/screenshot5.png" width="300">
+  
 * **Stage 2:** Click **Check Build**. The engine will verify if your path is mathematically sound.
-* *Note:* If your path allows for multiple different solutions, the UI will highlight "Ghost Paths" (red boxes) showing where the logic breaks. 
+
+<img src="images/screenshot6.png" width="300">
+
+* **Stage 3:** Colour the rest of the board to hide your path.
+
+<img src="images/screenshot8.png" width="300">
+
+* *Note:* If your path allows for multiple different solutions, the UI will highlight "Ghost Paths" (red boxes) showing where the logic breaks. Change the colours of these squares or set them to void (black).
+
+<img src="images/screenshot9.png" width="300">
+
+This can be an iterative process of changing and clicking on the **Check Build** button.
+
+<img src="images/screenshot10.png" width="300">
+
+* **Success:** Once you get the "Success: Unique solution verified!" message, you can click on the **Apply To Tabs** button and play.
 
 ### 3. Edit Mode (Painting)
 <img src="images/screenshot4.png" width="300">
