@@ -90,12 +90,13 @@ This can be an iterative process of changing and clicking on the **Check Build**
 * **Success:** Once you get the "Success: Unique solution verified!" message, you can click on the **Apply To Tabs** button and play.
 
 ### 3. Edit Mode (Painting)
-<img src="images/screenshot4.png" width="300">
+<img src="images/screenshot11.png" width="300">
 
 * Switch the dropdown to **Edit**.
-* Select a color from the dynamic palette (or select the Black "Void" space).
+* Select a colour from the dynamic palette (or select the Black "Void" space).
 * Tap or **drag your finger/mouse** across the grid to paint custom regions. 
 * Click **Check Build** to ensure your custom paint job still only yields one unique solution.
+* * *Note:* Like in the **Manual** mode, this can be an iterative process.
 
 ---
 
