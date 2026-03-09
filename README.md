@@ -18,7 +18,7 @@
 ---
 
 ### ⚠️ Early Release Notice
-This is the **first public release** of the Knight's Colour Tour engine. While it has been rigorously tested, you may encounter a few edge-case bugs as I continue to refine the procedural generation and UI.
+This is the **first public release** of the Knight's Colour Tour engine. While it has been tested, you may find a few edge-case bugs.
 
 **Found a bug or have a suggestion?** I'd love to hear from you! Please connect with me and send a message on **[LinkedIn](https://www.linkedin.com/in/rilhia/)**. Your feedback helps make this better for everyone!
 
