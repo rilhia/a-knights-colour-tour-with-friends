@@ -1,7 +1,7 @@
 ![Main Header Logo](images/AKnightsColourTourWithFriendsLogo.png)
 
 # A Knight's Colour Tour With Friends ♞
-> **A modern, colourful twist on a 1,000-year-old math problem.**
+> **A modern, colourful twist on a 1,000-year-old maths problem.**
 
 **A Knight's Colour Tour With Friends** is an open-source, grid-based logic puzzle. By combining the classic movement of a chess Knight with colour based region constraints, this platform offers a transparent, serverless environment for puzzle enthusiasts to test their spatial reasoning, build their own unique challenges, and share them with friends and colleagues instantly.
 
@@ -10,7 +10,7 @@
 ### 🚀 Navigation
 * [🏁 Quick Start](#-quick-start-i-just-want-to-play)
 * [🎮 The Rules](#-the-rules)
-* [🛠️ Customizing (Build Tab)](#️-the-build-tab-customize-your-challenge)
+* [🛠️ Customising (Build Tab)](#️-the-build-tab-customise-your-challenge)
 * [✉️ Sharing Challenges](#️-sharing-challenges)
 * [💡 The Solve Tab](#-the-solve-tab-watch-and-learn)
 * [🎯 Core Features](#-core-features)
@@ -34,7 +34,7 @@ When you first load the game, a procedurally generated puzzle is already waiting
 2.  **Moving the Knight:** Tap any valid cell that is an "L" shape away from your current position (the ♞ marker). 
 3.  **Tracking Progress:** The game automatically shades in regions you have already visited and logs your moves in the activity box.
 4.  **Making a Mistake:** If you trap yourself, simply press **◀ Undo** to walk back through your move history.
-5.  **Winning:** The game completes when you successfully visit every color on the board exactly once!
+5.  **Winning:** The game completes when you successfully visit every colour on the board exactly once!
 
 > ⚠️ **Important:** If you leave the **Play** tab during an active game, the board will reset. Finish your tour before switching tabs!
 
@@ -46,12 +46,12 @@ When you first load the game, a procedurally generated puzzle is already waiting
 Your goal is to complete a modified Knight's Tour. You must satisfy three simple constraints:
 
 1.  **Movement:** You can *only* move in a standard chess Knight pattern (two squares in one direction, and one square perpendicular).
-2.  **Regions:** You must land on every color-coded region exactly **once**. 
-3.  **No Backtracking:** You cannot jump into a colored region that you have already visited, and you cannot land on black "Void" spaces.
+2.  **Regions:** You must land on every colour-coded region exactly **once**. 
+3.  **No Backtracking:** You cannot jump into a coloured region that you have already visited, and you cannot land on black "Void" spaces.
 
 ---
 
-## 🛠️ The Build Tab: Customize Your Challenge
+## 🛠️ The Build Tab: Customise Your Challenge
 The **Build** tab is a fully-featured level editor. It allows you to generate random puzzles, manually plot paths, or paint your own custom grids using a seamless drag-to-paint touch interface.
 
 ### 1. Automatic Design (Procedural Generation)
