@@ -113,7 +113,7 @@ You'll need to click the **Check Build** and **Apply To Tabs** to use your new b
 ---
 
 ## 💡 The Solve Tab: Watch and Learn
-<img src="images/screenshot5.png" width="300">
+<img src="images/screenshot13.png" width="300">
 
 Stuck on a puzzle a friend sent you? Let the engine do the heavy lifting.
 
